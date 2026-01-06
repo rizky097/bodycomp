@@ -37,14 +37,9 @@ const App: React.FC = () => {
   }, [isDarkMode]);
 
   useEffect(() => {
-    // Load entries or seed dummy data if empty for first-time experience
+    // Load entries
     const loaded = Storage.loadEntries();
-    if (loaded.length === 0) {
-      const seeded = Storage.seedDummyData();
-      setEntries(seeded);
-    } else {
-      setEntries(loaded);
-    }
+    setEntries(loaded);
   }, []);
 
   // Scroll Management
@@ -274,10 +269,26 @@ const App: React.FC = () => {
 
                 {/* Dashboard Tab */}
                 {activeTab === 'dashboard' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500 delay-100">
-                    
-                    {/* Primary Metrics Row */}
-                    {entries.length > 0 && (
+                  entries.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+                        <div className="bg-orange-100 dark:bg-orange-900/20 p-6 rounded-full mb-6 ring-1 ring-orange-500/20">
+                            <Leaf className="w-12 h-12 text-orange-600 dark:text-orange-500" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Welcome to BodyComp</h2>
+                        <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 leading-relaxed">
+                            Start your health journey by logging your first body composition scan. We'll track your progress, analyze trends, and help you reach your goals.
+                        </p>
+                        <button 
+                            onClick={() => setShowAddModal(true)}
+                            className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-black font-bold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Log First Entry
+                        </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500 delay-100">
+                        {/* Primary Metrics Row */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {primaryMetricKeys.map(key => (
                               <MetricCard 
@@ -290,97 +301,97 @@ const App: React.FC = () => {
                               />
                             ))}
                         </div>
-                    )}
 
-                    {/* Chart Section - Full Width */}
-                    <div className="bg-card border border-border p-8 rounded-xl shadow-sm flex flex-col transition-colors duration-300">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">{chartConfig.label} Trend</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {timeRange === 'All' ? 'All time' : `Past ${timeRange} history`}
-                                </p>
+                        {/* Chart Section - Full Width */}
+                        <div className="bg-card border border-border p-8 rounded-xl shadow-sm flex flex-col transition-colors duration-300">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">{chartConfig.label} Trend</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {timeRange === 'All' ? 'All time' : `Past ${timeRange} history`}
+                                    </p>
+                                </div>
+                                <div className="flex bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+                                    {['1M', '3M', '6M', '1Y'].map(p => (
+                                        <button 
+                                            key={p} 
+                                            onClick={() => setTimeRange(p)}
+                                            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timeRange === p ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}
+                                        >
+                                            {p}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="flex bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
-                                {['1M', '3M', '6M', '1Y'].map(p => (
-                                    <button 
-                                        key={p} 
-                                        onClick={() => setTimeRange(p)}
-                                        className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timeRange === p ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}
-                                    >
-                                        {p}
-                                    </button>
+
+                            {/* Fixed Height Container for Chart */}
+                            <div className="h-[350px] w-[calc(100%+24px)] -ml-6">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={chartConfig.color} stopOpacity={0.1}/>
+                                            <stop offset="95%" stopColor={chartConfig.color} stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#27272a" : "#f3f4f6"} />
+                                        <XAxis 
+                                            dataKey="formattedDate" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{fontSize: 12, fill: isDarkMode ? '#71717a' : '#9ca3af'}} 
+                                            tickMargin={12}
+                                        />
+                                        <YAxis 
+                                            domain={['auto', 'auto']} 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{fontSize: 12, fill: isDarkMode ? '#71717a' : '#9ca3af'}} 
+                                            width={48}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: isDarkMode ? '#18181b' : '#fff', 
+                                                borderColor: isDarkMode ? '#27272a' : '#e5e7eb', 
+                                                borderRadius: '8px',
+                                                color: isDarkMode ? '#fff' : '#000'
+                                            }}
+                                            itemStyle={{ color: isDarkMode ? '#fff' : '#000' }}
+                                            formatter={(value: number) => [value.toFixed(1) + ' ' + chartConfig.unit, chartConfig.label]}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey={chartMetricKey} 
+                                            stroke={chartConfig.color} 
+                                            strokeWidth={2}
+                                            fill="url(#chartGradient)"
+                                            activeDot={{ r: 6, fill: chartConfig.color, stroke: isDarkMode ? '#09090b' : '#fff', strokeWidth: 2 }}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Secondary Metrics Breakdown */}
+                        {entries.length > 0 && latestEntry && (
+                        <div className="pt-4">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Body Composition Breakdown</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {secondaryMetricKeys.map(key => (
+                                  <MetricCard 
+                                    key={key}
+                                    config={METRICS_CONFIG[key]} 
+                                    value={latestEntry[key as keyof BodyMetrics] as number} 
+                                    previousValue={previousEntry?.[key as keyof BodyMetrics] as number}
+                                    onClick={() => handleMetricSelect(key as keyof BodyMetrics)} 
+                                    userProfile={userProfile}
+                                  />
                                 ))}
                             </div>
                         </div>
-
-                        {/* Fixed Height Container for Chart */}
-                        <div className="h-[350px] w-[calc(100%+24px)] -ml-6">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={chartConfig.color} stopOpacity={0.1}/>
-                                        <stop offset="95%" stopColor={chartConfig.color} stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#27272a" : "#f3f4f6"} />
-                                    <XAxis 
-                                        dataKey="formattedDate" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{fontSize: 12, fill: isDarkMode ? '#71717a' : '#9ca3af'}} 
-                                        tickMargin={12}
-                                    />
-                                    <YAxis 
-                                        domain={['auto', 'auto']} 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{fontSize: 12, fill: isDarkMode ? '#71717a' : '#9ca3af'}} 
-                                        width={48}
-                                    />
-                                    <Tooltip 
-                                        contentStyle={{
-                                            backgroundColor: isDarkMode ? '#18181b' : '#fff', 
-                                            borderColor: isDarkMode ? '#27272a' : '#e5e7eb', 
-                                            borderRadius: '8px',
-                                            color: isDarkMode ? '#fff' : '#000'
-                                        }}
-                                        itemStyle={{ color: isDarkMode ? '#fff' : '#000' }}
-                                        formatter={(value: number) => [value.toFixed(1) + ' ' + chartConfig.unit, chartConfig.label]}
-                                    />
-                                    <Area 
-                                        type="monotone" 
-                                        dataKey={chartMetricKey} 
-                                        stroke={chartConfig.color} 
-                                        strokeWidth={2}
-                                        fill="url(#chartGradient)"
-                                        activeDot={{ r: 6, fill: chartConfig.color, stroke: isDarkMode ? '#09090b' : '#fff', strokeWidth: 2 }}
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
+                        )}
                     </div>
-
-                    {/* Secondary Metrics Breakdown */}
-                    {entries.length > 0 && latestEntry && (
-                    <div className="pt-4">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Body Composition Breakdown</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {secondaryMetricKeys.map(key => (
-                              <MetricCard 
-                                key={key}
-                                config={METRICS_CONFIG[key]} 
-                                value={latestEntry[key as keyof BodyMetrics] as number} 
-                                previousValue={previousEntry?.[key as keyof BodyMetrics] as number}
-                                onClick={() => handleMetricSelect(key as keyof BodyMetrics)} 
-                                userProfile={userProfile}
-                              />
-                            ))}
-                        </div>
-                    </div>
-                    )}
-                </div>
+                  )
                 )}
 
                 {activeTab === 'history' && (
