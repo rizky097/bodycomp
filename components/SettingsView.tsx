@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, METRICS_CONFIG, BodyMetrics } from '../types';
-import { Save, Calendar, Ruler, Target, User, Activity, TrendingDown, TrendingUp, BarChart3 } from 'lucide-react';
+import { Save, Calendar, Ruler, Target, User, Activity, TrendingDown, TrendingUp, BarChart3, AlertTriangle, Trash2 } from 'lucide-react';
 import * as Storage from '../services/storageService';
 
 interface SettingsViewProps {
   onSave: (profile: UserProfile) => void;
   onCancel: () => void;
+  onReset: () => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ onSave, onCancel }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ onSave, onCancel, onReset }) => {
   // Use string values for form data to handle decimals and empty states correctly during typing
   const [formData, setFormData] = useState({
     height: '',
@@ -80,7 +81,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSave, onCancel }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
+    <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500 pb-12">
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-border">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -252,6 +253,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSave, onCancel }) => {
 
             </div>
           </div>
+
+          <div className="border-t border-border"></div>
+          
+          {/* Danger Zone */}
+          <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-red-800 dark:text-red-400 flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4" /> Danger Zone
+              </h3>
+              <p className="text-xs text-red-600 dark:text-red-400 mb-3">
+                  Permanently delete all recorded metrics and history. This action cannot be undone.
+              </p>
+              <button
+                  type="button"
+                  onClick={() => {
+                      if(window.confirm('Are you sure you want to delete all data?')) {
+                          onReset();
+                      }
+                  }}
+                  className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                  <Trash2 className="w-3 h-3" /> Reset Application Data
+              </button>
+          </div>
+
+          <div className="border-t border-border"></div>
 
           {/* Action Buttons */}
           <div className="pt-4 flex items-center justify-end gap-3">

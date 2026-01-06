@@ -96,6 +96,13 @@ const App: React.FC = () => {
     const updated = Storage.deleteEntry(id);
     setEntries(updated);
   };
+  
+  const handleResetData = () => {
+    Storage.clearAllEntries();
+    setEntries([]);
+    setActiveTab('dashboard');
+    window.scrollTo(0, 0);
+  };
 
   const handleProfileSave = (profile: UserProfile) => {
       setUserProfile(profile);
@@ -419,7 +426,11 @@ const App: React.FC = () => {
                 )}
                 
                 {activeTab === 'settings' && (
-                    <SettingsView onSave={handleProfileSave} onCancel={() => handleNavClick(previousTabRef.current)} />
+                    <SettingsView 
+                        onSave={handleProfileSave} 
+                        onCancel={() => handleNavClick(previousTabRef.current)} 
+                        onReset={handleResetData}
+                    />
                 )}
             </>
         )}

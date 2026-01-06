@@ -1,6 +1,7 @@
 import { BodyMetrics, UserProfile } from '../types';
 
-const STORAGE_KEY = 'body_comp_tracker_data_v1';
+// Changed key to ensure fresh start for deployment (ignores previous dummy data)
+const STORAGE_KEY = 'body_comp_tracker_data_release_v1';
 const PROFILE_KEY = 'body_comp_user_profile_v1';
 
 export const saveEntries = (entries: BodyMetrics[]) => {
@@ -82,4 +83,12 @@ export const deleteEntry = (id: string): BodyMetrics[] => {
   const updated = current.filter(e => e.id !== id);
   saveEntries(updated);
   return updated;
+};
+
+export const clearAllEntries = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.error('Failed to clear entries', e);
+  }
 };
