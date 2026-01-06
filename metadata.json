@@ -1,0 +1,5 @@
+{
+  "name": "BodyComp Tracker",
+  "description": "Track your gym body composition scale results using AI to extract data from receipt photos.",
+  "requestFramePermissions": []
+}
