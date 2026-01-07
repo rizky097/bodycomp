@@ -17,7 +17,8 @@ const schema = {
     healthScore: { type: Type.NUMBER, description: "Health score or InBody score" },
     dateStr: { type: Type.STRING, description: "Date of measurement found on receipt in YYYY-MM-DD format, or approximate if partial." }
   },
-  required: ["weight", "skeletalMuscle", "fatMass"],
+  // Removed required constraint to allow partial data
+  required: [],
 };
 
 export const extractMetricsFromImage = async (base64Image: string): Promise<Partial<BodyMetrics>> => {
@@ -41,7 +42,7 @@ export const extractMetricsFromImage = async (base64Image: string): Promise<Part
           {
             text: `Analyze this body composition receipt. Extract the numerical values for Weight, Skeletal Muscle, Fat Mass, BMI, Percentage Body Fat, Visceral Fat Grade, Basal Metabolism, and Health Score. 
             Also extract the date and time of the measurement if visible.
-            Return the data as a JSON object matching the schema.`
+            Return the data as a JSON object matching the schema. If a value is not clearly visible, omit it.`
           }
         ]
       },

@@ -104,13 +104,55 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
+  const handleGenerateDemo = () => {
+    const updated = Storage.generateDummyData();
+    setEntries(updated);
+    setActiveTab('dashboard');
+    window.scrollTo(0, 0);
+  };
+
+  const handleExportData = () => {
+      Storage.exportData();
+  };
+
+  const handleImportData = async (file: File) => {
+      try {
+          const updated = await Storage.importData(file);
+          setEntries(updated);
+          // Optional: Show success feedback
+          alert(`Successfully imported ${updated.length} entries.`);
+      } catch (error) {
+          console.error(error);
+          alert("Import failed. Please ensure the file format is correct.");
+      }
+  };
+
   const handleProfileSave = (profile: UserProfile) => {
       setUserProfile(profile);
       setActiveTab(previousTabRef.current);
   };
 
   const latestEntry = entries[0];
-  const previousEntry = entries[1];
+  
+  // Helper to find the latest valid value and its index for a metric
+  const getLatestMetricData = (key: keyof BodyMetrics) => {
+    const index = entries.findIndex(e => typeof e[key] === 'number');
+    if (index === -1) return { value: undefined, index: -1 };
+    return { value: entries[index][key] as number, index };
+  };
+
+  // Helper to find previous value relative to a specific index (skipping nulls)
+  const getPreviousValue = (key: keyof BodyMetrics, startIndex: number): number | undefined => {
+    if (startIndex === -1) return undefined;
+    // Start searching from the next index
+    for (let i = startIndex + 1; i < entries.length; i++) {
+      const val = entries[i][key];
+      if (typeof val === 'number') {
+        return val;
+      }
+    }
+    return undefined;
+  };
 
   // Determine current chart metric settings based on user profile
   // Force fallback to 'weight' if 'basalMetabolism' is selected, as requested to be hidden from dashboard
@@ -157,16 +199,24 @@ const App: React.FC = () => {
 
     // Apply Rolling Average Smoothing
     const smoothedData = sortedData.map((entry, index, arr) => {
+        // If the point itself is undefined, return null for that metric to break the line
+        if (typeof entry[chartMetricKey] !== 'number') {
+             return { ...entry, [chartMetricKey]: null };
+        }
+
         if (windowSize <= 1) return entry;
         
         // Dynamic window adjustment for start of array
         const start = Math.max(0, index - windowSize + 1);
         const windowSlice = arr.slice(start, index + 1);
         
-        if (windowSlice.length === 0) return entry;
+        // Filter slice to only include entries that actually have this metric
+        const validSlice = windowSlice.filter(e => typeof e[chartMetricKey] === 'number');
 
-        const sum = windowSlice.reduce((acc, curr) => acc + (curr[chartMetricKey] as number), 0);
-        const avg = sum / windowSlice.length;
+        if (validSlice.length === 0) return { ...entry, [chartMetricKey]: null };
+
+        const sum = validSlice.reduce((acc, curr) => acc + (curr[chartMetricKey] as number), 0);
+        const avg = sum / validSlice.length;
         
         return {
             ...entry,
@@ -187,7 +237,7 @@ const App: React.FC = () => {
   const secondaryMetricKeys = ['bmi', 'healthScore', 'visceralFat', 'basalMetabolism'];
 
   return (
-    <div className="min-h-screen pb-24 md:pb-10 font-sans selection:bg-orange-500/30 bg-background text-text transition-colors duration-300">
+    <div className="min-h-screen pb-32 md:pb-10 font-sans selection:bg-orange-500/30 bg-background text-text transition-colors duration-300">
       
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-30 transition-colors duration-300">
@@ -257,7 +307,7 @@ const App: React.FC = () => {
         ) : (
             <>
                 {/* Title Section (Dashboard Only) */}
-                {activeTab === 'dashboard' && (
+                {activeTab === 'dashboard' && entries.length > 0 && (
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div>
                           <span className="text-xs font-bold text-orange-500 tracking-wider uppercase mb-1 block">Analytics</span>
@@ -297,16 +347,20 @@ const App: React.FC = () => {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-500 delay-100">
                         {/* Primary Metrics Row */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {primaryMetricKeys.map(key => (
-                              <MetricCard 
-                                key={key}
-                                config={METRICS_CONFIG[key]} 
-                                value={latestEntry[key as keyof BodyMetrics] as number} 
-                                previousValue={previousEntry?.[key as keyof BodyMetrics] as number}
-                                onClick={() => handleMetricSelect(key as keyof BodyMetrics)}
-                                userProfile={userProfile}
-                              />
-                            ))}
+                            {primaryMetricKeys.map(key => {
+                                const { value, index } = getLatestMetricData(key as keyof BodyMetrics);
+                                const previousValue = getPreviousValue(key as keyof BodyMetrics, index);
+                                return (
+                                  <MetricCard 
+                                    key={key}
+                                    config={METRICS_CONFIG[key]} 
+                                    value={value} 
+                                    previousValue={previousValue}
+                                    onClick={() => handleMetricSelect(key as keyof BodyMetrics)}
+                                    userProfile={userProfile}
+                                  />
+                                );
+                            })}
                         </div>
 
                         {/* Chart Section - Full Width */}
@@ -364,7 +418,7 @@ const App: React.FC = () => {
                                                 color: isDarkMode ? '#fff' : '#000'
                                             }}
                                             itemStyle={{ color: isDarkMode ? '#fff' : '#000' }}
-                                            formatter={(value: number) => [value.toFixed(1) + ' ' + chartConfig.unit, chartConfig.label]}
+                                            formatter={(value: number) => [value ? value.toFixed(1) + ' ' + chartConfig.unit : 'No Data', chartConfig.label]}
                                         />
                                         <Area 
                                             type="monotone" 
@@ -372,6 +426,7 @@ const App: React.FC = () => {
                                             stroke={chartConfig.color} 
                                             strokeWidth={2}
                                             fill="url(#chartGradient)"
+                                            connectNulls={false}
                                             activeDot={{ r: 6, fill: chartConfig.color, stroke: isDarkMode ? '#09090b' : '#fff', strokeWidth: 2 }}
                                         />
                                     </AreaChart>
@@ -384,16 +439,20 @@ const App: React.FC = () => {
                         <div className="pt-4">
                             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Body Composition Breakdown</h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {secondaryMetricKeys.map(key => (
-                                  <MetricCard 
-                                    key={key}
-                                    config={METRICS_CONFIG[key]} 
-                                    value={latestEntry[key as keyof BodyMetrics] as number} 
-                                    previousValue={previousEntry?.[key as keyof BodyMetrics] as number}
-                                    onClick={() => handleMetricSelect(key as keyof BodyMetrics)} 
-                                    userProfile={userProfile}
-                                  />
-                                ))}
+                                {secondaryMetricKeys.map(key => {
+                                    const { value, index } = getLatestMetricData(key as keyof BodyMetrics);
+                                    const previousValue = getPreviousValue(key as keyof BodyMetrics, index);
+                                    return (
+                                      <MetricCard 
+                                        key={key}
+                                        config={METRICS_CONFIG[key]} 
+                                        value={value} 
+                                        previousValue={previousValue}
+                                        onClick={() => handleMetricSelect(key as keyof BodyMetrics)} 
+                                        userProfile={userProfile}
+                                      />
+                                    );
+                                })}
                             </div>
                         </div>
                         )}
@@ -430,6 +489,9 @@ const App: React.FC = () => {
                         onSave={handleProfileSave} 
                         onCancel={() => handleNavClick(previousTabRef.current)} 
                         onReset={handleResetData}
+                        onGenerateDemo={handleGenerateDemo}
+                        onExport={handleExportData}
+                        onImport={handleImportData}
                     />
                 )}
             </>
@@ -442,37 +504,40 @@ const App: React.FC = () => {
             <p>&copy; 2026 BodyComp Inc.</p>
             <div className="flex gap-6">
                 <a href="#" className="hover:text-gray-900 dark:hover:text-gray-300">Data Privacy</a>
-                <a href="#" className="hover:text-gray-900 dark:hover:text-gray-300">Export Data</a>
+                <button onClick={handleExportData} className="hover:text-gray-900 dark:hover:text-gray-300">Export Data</button>
                 <a href="#" className="hover:text-gray-900 dark:hover:text-gray-300">Terms</a>
             </div>
         </div>
       </footer>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40 px-6 py-3 flex justify-between items-center pb-safe transition-colors duration-300">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-40 flex justify-between items-end pb-safe transition-all duration-300 min-h-[90px] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
          <button 
             onClick={() => handleNavClick('dashboard')}
-            className={`flex flex-col items-center gap-1 ${activeTab === 'dashboard' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 pb-2 pt-3 h-full active:bg-gray-50 dark:active:bg-zinc-800/50 transition-colors ${activeTab === 'dashboard' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
          >
-            <LayoutDashboard className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Dashboard</span>
+            <LayoutDashboard className={`w-7 h-7 ${activeTab === 'dashboard' ? 'stroke-2' : 'stroke-1.5'}`} />
+            <span className="text-[11px] font-medium">Dashboard</span>
          </button>
          
-         <button 
-            onClick={() => setShowAddModal(true)}
-            className="flex flex-col items-center justify-center -mt-8"
-         >
-            <div className="bg-gray-900 dark:bg-white text-white dark:text-black w-14 h-14 rounded-full shadow-lg flex items-center justify-center">
-                <Plus className="w-6 h-6" />
-            </div>
-         </button>
+         <div className="w-20 relative flex justify-center pointer-events-none">
+             <button 
+                onClick={() => setShowAddModal(true)}
+                className="absolute -top-12 pointer-events-auto active:scale-95 transition-transform"
+             >
+                <div className="bg-gray-900 dark:bg-white text-white dark:text-black w-16 h-16 rounded-full shadow-xl shadow-gray-500/20 dark:shadow-black/40 flex items-center justify-center border-4 border-background">
+                    <Plus className="w-8 h-8" />
+                </div>
+                <span className="sr-only">Log Data</span>
+             </button>
+         </div>
 
          <button 
             onClick={() => handleNavClick('history')}
-            className={`flex flex-col items-center gap-1 ${activeTab === 'history' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 pb-2 pt-3 h-full active:bg-gray-50 dark:active:bg-zinc-800/50 transition-colors ${activeTab === 'history' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
          >
-            <History className="w-6 h-6" />
-            <span className="text-[10px] font-medium">History</span>
+            <History className={`w-7 h-7 ${activeTab === 'history' ? 'stroke-2' : 'stroke-1.5'}`} />
+            <span className="text-[11px] font-medium">History</span>
          </button>
       </div>
 

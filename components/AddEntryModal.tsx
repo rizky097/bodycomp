@@ -44,6 +44,8 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({ onClose, onSave, onDelete
         const val = initialData[key as keyof BodyMetrics];
         if (val !== undefined && val !== null) {
             stringData[key] = String(val);
+        } else {
+            stringData[key] = ''; // Ensure empty string for undefined/null
         }
       });
       
@@ -115,18 +117,25 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({ onClose, onSave, onDelete
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Helper to convert empty strings to undefined
+    const parseOpt = (val?: string): number | undefined => {
+      if (!val || val.trim() === '') return undefined;
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? undefined : parsed;
+    };
+    
     // Parse strings back to numbers for saving
     const entry: BodyMetrics = {
       id: initialData?.id || uuidv4(),
       date: formData.date ? new Date(formData.date).toISOString() : new Date().toISOString(),
-      weight: parseFloat(formData.weight || '0'),
-      skeletalMuscle: parseFloat(formData.skeletalMuscle || '0'),
-      fatMass: parseFloat(formData.fatMass || '0'),
-      bmi: parseFloat(formData.bmi || '0'),
-      bodyFatPercent: parseFloat(formData.bodyFatPercent || '0'),
-      visceralFat: parseFloat(formData.visceralFat || '0'),
-      basalMetabolism: parseFloat(formData.basalMetabolism || '0'),
-      healthScore: parseFloat(formData.healthScore || '0'),
+      weight: parseOpt(formData.weight),
+      skeletalMuscle: parseOpt(formData.skeletalMuscle),
+      fatMass: parseOpt(formData.fatMass),
+      bmi: parseOpt(formData.bmi),
+      bodyFatPercent: parseOpt(formData.bodyFatPercent),
+      visceralFat: parseOpt(formData.visceralFat),
+      basalMetabolism: parseOpt(formData.basalMetabolism),
+      healthScore: parseOpt(formData.healthScore),
     };
     
     onSave(entry);
@@ -175,6 +184,7 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({ onClose, onSave, onDelete
                   ref={fileInputRef} 
                   className="hidden" 
                   accept="image/*"
+                  capture="environment"
                   onChange={handleFileChange}
                 />
               </div>
@@ -229,7 +239,7 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({ onClose, onSave, onDelete
                             value={formData[config.key] ?? ''}
                             onChange={(e) => handleInputChange(config.key, e.target.value)}
                             className="w-full p-3 px-12 text-center rounded-xl border border-gray-200 dark:border-zinc-700 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none text-gray-900 dark:text-white bg-white dark:bg-zinc-800 [&::-webkit-inner-spin-button]:appearance-none"
-                            placeholder="0.0"
+                            placeholder="-"
                             style={{ MozAppearance: 'textfield' }}
                         />
                         <button 

@@ -20,12 +20,16 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
     return [...entries].reverse().map(e => ({
       date: e.date,
       formattedDate: new Date(e.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-      value: e[metricKey] as number
+      value: e[metricKey] !== undefined ? (e[metricKey] as number) : null
     }));
   }, [entries, metricKey]);
 
-  const currentVal = entries[0]?.[metricKey] as number;
-  const oldestVal = entries[entries.length - 1]?.[metricKey] as number;
+  // Use the latest available value for this metric, rather than just the latest entry
+  const currentVal = entries.find(e => typeof e[metricKey] === 'number')?.[metricKey] as number | undefined;
+  
+  // Find the first available value in history (going backwards) to calculate start
+  const oldestEntry = entries.slice().reverse().find(e => e[metricKey] !== undefined);
+  const oldestVal = oldestEntry ? (oldestEntry[metricKey] as number) : undefined;
 
   // Target Logic
   let targetValue: number | undefined;
@@ -130,7 +134,7 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
       </div>
 
       {/* Target Progress Card */}
-      {showTarget && targetValue !== undefined && (
+      {showTarget && targetValue !== undefined && currentVal !== undefined && (
         <div className="bg-card border border-border p-5 rounded-xl shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-5">
                 <Target className="w-24 h-24" />
@@ -177,7 +181,7 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-6">Trend over time</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={chartData} margin={{top: 5, right: 5, bottom: 5, left: 0}}>
               <defs>
                 <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={config.color} stopOpacity={0.1}/>
@@ -205,7 +209,7 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
                     borderRadius: '8px',
                     color: 'var(--text)'
                 }}
-                formatter={(value: number) => [value.toFixed(1) + ' ' + config.unit, config.label]}
+                formatter={(value: number) => [value ? value.toFixed(1) + ' ' + config.unit : 'No Data', config.label]}
               />
               <Area 
                 type="monotone" 
@@ -215,6 +219,7 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
                 fillOpacity={1} 
                 fill="url(#colorMetric)" 
                 strokeWidth={2}
+                connectNulls={false}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -231,11 +236,31 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
         </div>
         <div className="divide-y divide-border">
           {displayHistory.map((entry, index) => {
-            // Find the true previous entry in the full list, not just the displayed list
+            const currentValue = entry[metricKey] as number | undefined;
+            
+            // If current entry has no value for this metric, skip rendering it or render disabled state
+            if (currentValue === undefined) {
+                 return (
+                    <div key={entry.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors opacity-50">
+                        <div className="flex flex-col">
+                            <span className="font-medium text-gray-900 dark:text-white">
+                                {new Date(entry.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                            </span>
+                            <span className="text-xs text-gray-400 dark:text-zinc-500">
+                                {new Date(entry.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                        <span className="text-sm text-gray-400 italic">Not Recorded</span>
+                    </div>
+                 );
+            }
+
+            // Find previous valid entry to compare against
+            // We search forward in the main `entries` array (which is sorted Newest -> Oldest)
+            // starting from the current index + 1
             const realIndex = entries.findIndex(e => e.id === entry.id);
-            const nextEntry = entries[realIndex + 1]; 
-            const prevValue = nextEntry ? (nextEntry[metricKey] as number) : undefined;
-            const currentValue = entry[metricKey] as number;
+            const prevValidEntry = entries.slice(realIndex + 1).find(e => e[metricKey] !== undefined);
+            const prevValue = prevValidEntry ? (prevValidEntry[metricKey] as number) : undefined;
 
             return (
               <div key={entry.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">

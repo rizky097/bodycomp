@@ -4,14 +4,17 @@ import { MetricConfig, UserProfile } from '../types';
 
 interface MetricCardProps {
   config: MetricConfig;
-  value: number;
+  value?: number;
   previousValue?: number;
   onClick?: () => void;
   userProfile?: UserProfile;
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({ config, value, previousValue, onClick, userProfile }) => {
-  const diff = previousValue !== undefined ? value - previousValue : 0;
+  const hasValue = value !== undefined && value !== null;
+  const hasPrevious = previousValue !== undefined && previousValue !== null;
+  
+  const diff = (hasValue && hasPrevious) ? (value! - previousValue!) : 0;
   const isPositive = diff > 0;
   const isNegative = diff < 0;
   const isZero = diff === 0;
@@ -73,7 +76,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ config, value, previousValue, o
       <div>
         <div className="flex items-baseline gap-1 mb-3">
             <span className="text-3xl font-bold text-gray-900 dark:text-white">
-            {value.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+            {hasValue ? value!.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '--'}
             </span>
             <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{config.unit}</span>
         </div>
@@ -82,11 +85,11 @@ const MetricCard: React.FC<MetricCardProps> = ({ config, value, previousValue, o
             <div className="w-full bg-gray-100 dark:bg-zinc-800 rounded-full h-1.5 mt-2 mb-1">
                 <div 
                     className="bg-orange-500 h-1.5 rounded-full" 
-                    style={{ width: `${Math.min(value, 100)}%` }}
+                    style={{ width: `${Math.min(value || 0, 100)}%` }}
                 ></div>
             </div>
         ) : (
-            previousValue !== undefined && (
+            (hasValue && hasPrevious) ? (
                 <div className="flex items-center gap-2">
                     <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${trendColor}`}>
                         {!isZero && <Icon className="w-3 h-3" />}
@@ -94,6 +97,8 @@ const MetricCard: React.FC<MetricCardProps> = ({ config, value, previousValue, o
                     </div>
                     <span className="text-xs text-gray-400 dark:text-zinc-500">vs last scan</span>
                 </div>
+            ) : (
+                <div className="h-6"></div> // Spacer to keep card height consistent
             )
         )}
       </div>

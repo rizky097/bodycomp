@@ -1,14 +1,15 @@
+
 export interface BodyMetrics {
   id: string;
   date: string; // ISO String
-  weight: number;
-  skeletalMuscle: number;
-  fatMass: number;
-  bmi: number;
-  bodyFatPercent: number;
-  visceralFat: number;
-  basalMetabolism: number;
-  healthScore: number;
+  weight?: number;
+  skeletalMuscle?: number;
+  fatMass?: number;
+  bmi?: number;
+  bodyFatPercent?: number;
+  visceralFat?: number;
+  basalMetabolism?: number;
+  healthScore?: number;
   rawText?: string;
 }
 

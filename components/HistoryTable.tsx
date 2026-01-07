@@ -50,16 +50,16 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ entries, onSelect, onDelete
 
                 <div className="flex flex-col gap-1">
                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-bold text-gray-900 dark:text-white">{entry.weight} kg</span>
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">{entry.weight ?? '--'} kg</span>
                         <div className="w-1 h-1 bg-gray-300 dark:bg-zinc-600 rounded-full"></div>
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{entry.bodyFatPercent}% Body Fat</span>
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{entry.bodyFatPercent ?? '--'}% Body Fat</span>
                      </div>
                      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-zinc-500">
-                        <span>Muscle: {entry.skeletalMuscle}kg</span>
+                        <span>Muscle: {entry.skeletalMuscle ?? '--'}kg</span>
                         <span>•</span>
-                        <span>BMI: {entry.bmi}</span>
+                        <span>BMI: {entry.bmi ?? '--'}</span>
                         <span>•</span>
-                        <span>Score: {entry.healthScore}</span>
+                        <span>Score: {entry.healthScore ?? '--'}</span>
                      </div>
                 </div>
             </div>
