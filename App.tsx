@@ -518,21 +518,21 @@ const App: React.FC = () => {
       </footer>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border pb-[env(safe-area-inset-bottom)]">
-          <div className="flex items-center justify-between px-8 h-16 relative">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-center justify-between px-10 h-[60px] relative">
              <button 
                 onClick={() => handleNavClick('dashboard')}
-                className={`flex flex-col items-center justify-center gap-1 w-16 transition-colors ${activeTab === 'dashboard' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
+                className={`flex flex-col items-center justify-center gap-1 min-w-[64px] transition-colors ${activeTab === 'dashboard' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
              >
                 <LayoutDashboard className={`w-6 h-6 ${activeTab === 'dashboard' ? 'stroke-2' : 'stroke-1.5'}`} />
                 <span className="text-[10px] font-medium">Dashboard</span>
              </button>
 
              {/* Center Add Button */}
-             <div className="absolute left-1/2 -translate-x-1/2 -top-5">
+             <div className="absolute left-1/2 -translate-x-1/2 -top-6">
                  <button 
                     onClick={() => setShowAddModal(true)}
-                    className="w-14 h-14 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black shadow-lg shadow-gray-900/20 active:scale-95 transition-transform border-[4px] border-background"
+                    className="w-14 h-14 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black shadow-lg shadow-gray-900/20 active:scale-95 transition-transform border-[4px] border-card"
                  >
                     <Plus className="w-7 h-7" />
                  </button>
@@ -540,7 +540,7 @@ const App: React.FC = () => {
 
              <button 
                 onClick={() => handleNavClick('history')}
-                className={`flex flex-col items-center justify-center gap-1 w-16 transition-colors ${activeTab === 'history' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
+                className={`flex flex-col items-center justify-center gap-1 min-w-[64px] transition-colors ${activeTab === 'history' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
              >
                 <History className={`w-6 h-6 ${activeTab === 'history' ? 'stroke-2' : 'stroke-1.5'}`} />
                 <span className="text-[10px] font-medium">History</span>
