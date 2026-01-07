@@ -184,7 +184,6 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({ onClose, onSave, onDelete
                   ref={fileInputRef} 
                   className="hidden" 
                   accept="image/*"
-                  capture="environment"
                   onChange={handleFileChange}
                 />
               </div>

@@ -134,20 +134,23 @@ const App: React.FC = () => {
 
   const latestEntry = entries[0];
   
-  // Helper to find the latest valid value and its index for a metric
+  // Helper to find the latest valid value and its index for a metric (robust checking)
   const getLatestMetricData = (key: keyof BodyMetrics) => {
-    const index = entries.findIndex(e => typeof e[key] === 'number');
+    const index = entries.findIndex(e => {
+        const val = e[key];
+        return typeof val === 'number' && Number.isFinite(val);
+    });
     if (index === -1) return { value: undefined, index: -1 };
     return { value: entries[index][key] as number, index };
   };
 
-  // Helper to find previous value relative to a specific index (skipping nulls)
+  // Helper to find previous valid value relative to a specific index (skipping nulls/gaps)
   const getPreviousValue = (key: keyof BodyMetrics, startIndex: number): number | undefined => {
     if (startIndex === -1) return undefined;
-    // Start searching from the next index
+    // Start searching from the next index after the latest found
     for (let i = startIndex + 1; i < entries.length; i++) {
       const val = entries[i][key];
-      if (typeof val === 'number') {
+      if (typeof val === 'number' && Number.isFinite(val)) {
         return val;
       }
     }
@@ -200,7 +203,8 @@ const App: React.FC = () => {
     // Apply Rolling Average Smoothing
     const smoothedData = sortedData.map((entry, index, arr) => {
         // If the point itself is undefined, return null for that metric to break the line
-        if (typeof entry[chartMetricKey] !== 'number') {
+        const val = entry[chartMetricKey];
+        if (typeof val !== 'number' || !Number.isFinite(val)) {
              return { ...entry, [chartMetricKey]: null };
         }
 
@@ -211,7 +215,10 @@ const App: React.FC = () => {
         const windowSlice = arr.slice(start, index + 1);
         
         // Filter slice to only include entries that actually have this metric
-        const validSlice = windowSlice.filter(e => typeof e[chartMetricKey] === 'number');
+        const validSlice = windowSlice.filter(e => {
+            const v = e[chartMetricKey];
+            return typeof v === 'number' && Number.isFinite(v);
+        });
 
         if (validSlice.length === 0) return { ...entry, [chartMetricKey]: null };
 

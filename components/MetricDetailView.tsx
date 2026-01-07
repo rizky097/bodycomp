@@ -20,15 +20,15 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
     return [...entries].reverse().map(e => ({
       date: e.date,
       formattedDate: new Date(e.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-      value: e[metricKey] !== undefined ? (e[metricKey] as number) : null
+      value: (typeof e[metricKey] === 'number' && Number.isFinite(e[metricKey])) ? (e[metricKey] as number) : null
     }));
   }, [entries, metricKey]);
 
-  // Use the latest available value for this metric, rather than just the latest entry
-  const currentVal = entries.find(e => typeof e[metricKey] === 'number')?.[metricKey] as number | undefined;
+  // Use the latest available valid value for this metric, skipping any gaps
+  const currentVal = entries.find(e => typeof e[metricKey] === 'number' && Number.isFinite(e[metricKey]))?.[metricKey] as number | undefined;
   
-  // Find the first available value in history (going backwards) to calculate start
-  const oldestEntry = entries.slice().reverse().find(e => e[metricKey] !== undefined);
+  // Find the oldest recorded value in history (going backwards) to calculate start
+  const oldestEntry = entries.slice().reverse().find(e => typeof e[metricKey] === 'number' && Number.isFinite(e[metricKey]));
   const oldestVal = oldestEntry ? (oldestEntry[metricKey] as number) : undefined;
 
   // Target Logic
@@ -43,16 +43,12 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
   let isGoalMet = false;
 
   // Determine directionality for colors (Green vs Red arrows in history)
-  // Default assumptions
   let isInverseMetric = ['fatMass', 'bodyFatPercent', 'visceralFat', 'bmi'].includes(metricKey);
 
-  // Dynamic override based on Target vs Start (except for weight which has explicit user preference)
   if (targetValue !== undefined && oldestVal !== undefined && metricKey !== 'weight') {
-      // If target is lower than start, we assume "Lower is better" (Inverse)
       isInverseMetric = targetValue < oldestVal;
   }
   
-  // Explicit override for weight using the profile setting
   if (metricKey === 'weight') {
       isInverseMetric = userProfile.weightGoal === 'lose';
   }
@@ -64,23 +60,16 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
     const totalDist = targetValue - oldestVal;
     const currentDist = currentVal - oldestVal;
 
-    // Check for "Maintain" goal (Start ~= Target)
     if (Math.abs(totalDist) < 0.05) {
-        // Goal is to stay close to target
-        isGoalMet = remaining < 0.5; // Arbitrary threshold for maintenance
+        isGoalMet = remaining < 0.5;
         progress = isGoalMet ? 100 : 0;
     } else {
-        // Normal progress calculation using vector math
-        // This handles both Gain (positive totalDist) and Lose (negative totalDist) correctly
         const rawProgress = (currentDist / totalDist) * 100;
         progress = Math.min(100, Math.max(0, rawProgress));
 
-        // Check completion based on direction
         if (totalDist > 0) {
-            // Target is higher -> Goal is to Increase
             isGoalMet = currentVal >= targetValue;
         } else {
-            // Target is lower -> Goal is to Decrease
             isGoalMet = currentVal <= targetValue;
         }
         
@@ -88,7 +77,6 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
     }
   }
 
-  // History Logic
   const displayHistory = showAllHistory ? entries : entries.slice(0, 5);
 
   const getDiffElement = (current: number, prev: number) => {
@@ -97,9 +85,6 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
     const isNegative = diff < 0;
     
     let trendColor = 'text-gray-400';
-    // Green if good, Red if bad
-    // Good = Positive if !Inverse, Negative if Inverse
-    
     if (isPositive) {
         trendColor = isInverseMetric ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400';
     }
@@ -119,7 +104,6 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 pb-20">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <button 
           onClick={onBack}
@@ -133,7 +117,6 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
         </div>
       </div>
 
-      {/* Target Progress Card */}
       {showTarget && targetValue !== undefined && currentVal !== undefined && (
         <div className="bg-card border border-border p-5 rounded-xl shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -176,7 +159,6 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
         </div>
       )}
 
-      {/* Chart */}
       <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-6">Trend over time</h3>
         <div className="h-64">
@@ -226,7 +208,6 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
         </div>
       </div>
 
-      {/* History List */}
       <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="p-4 border-b border-border bg-gray-50/50 dark:bg-zinc-800/50 flex justify-between items-center">
           <h3 className="font-semibold text-gray-800 dark:text-white">History Log</h3>
@@ -237,17 +218,12 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
         <div className="divide-y divide-border">
           {displayHistory.map((entry, index) => {
             const currentValue = entry[metricKey] as number | undefined;
-            
-            // If current entry has no value for this metric, skip rendering it or render disabled state
-            if (currentValue === undefined) {
+            if (typeof currentValue !== 'number' || !Number.isFinite(currentValue)) {
                  return (
                     <div key={entry.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors opacity-50">
                         <div className="flex flex-col">
                             <span className="font-medium text-gray-900 dark:text-white">
                                 {new Date(entry.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                            </span>
-                            <span className="text-xs text-gray-400 dark:text-zinc-500">
-                                {new Date(entry.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                             </span>
                         </div>
                         <span className="text-sm text-gray-400 italic">Not Recorded</span>
@@ -255,11 +231,8 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
                  );
             }
 
-            // Find previous valid entry to compare against
-            // We search forward in the main `entries` array (which is sorted Newest -> Oldest)
-            // starting from the current index + 1
             const realIndex = entries.findIndex(e => e.id === entry.id);
-            const prevValidEntry = entries.slice(realIndex + 1).find(e => e[metricKey] !== undefined);
+            const prevValidEntry = entries.slice(realIndex + 1).find(e => typeof e[metricKey] === 'number' && Number.isFinite(e[metricKey]));
             const prevValue = prevValidEntry ? (prevValidEntry[metricKey] as number) : undefined;
 
             return (
@@ -267,9 +240,6 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-900 dark:text-white">
                     {new Date(entry.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                  </span>
-                  <span className="text-xs text-gray-400 dark:text-zinc-500">
-                    {new Date(entry.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 <div className="flex items-center gap-6">
@@ -288,15 +258,7 @@ const MetricDetailView: React.FC<MetricDetailViewProps> = ({ metricKey, config, 
                 onClick={() => setShowAllHistory(!showAllHistory)}
                 className="w-full p-3 flex items-center justify-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors border-t border-border"
             >
-                {showAllHistory ? (
-                    <>
-                        Show Less <ChevronUp className="w-4 h-4" />
-                    </>
-                ) : (
-                    <>
-                        View All History ({entries.length - 5} more) <ChevronDown className="w-4 h-4" />
-                    </>
-                )}
+                {showAllHistory ? "Show Less" : "View All History"}
             </button>
         )}
       </div>
