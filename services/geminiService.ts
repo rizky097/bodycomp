@@ -30,7 +30,7 @@ export const extractMetricsFromImage = async (base64Image: string): Promise<Part
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-flash-lite-latest',
       contents: {
         parts: [
           {

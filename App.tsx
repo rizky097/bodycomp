@@ -518,34 +518,34 @@ const App: React.FC = () => {
       </footer>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-40 flex justify-between items-end pb-safe transition-all duration-300 min-h-[90px] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-         <button 
-            onClick={() => handleNavClick('dashboard')}
-            className={`flex-1 flex flex-col items-center justify-center gap-1.5 pb-2 pt-3 h-full active:bg-gray-50 dark:active:bg-zinc-800/50 transition-colors ${activeTab === 'dashboard' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
-         >
-            <LayoutDashboard className={`w-7 h-7 ${activeTab === 'dashboard' ? 'stroke-2' : 'stroke-1.5'}`} />
-            <span className="text-[11px] font-medium">Dashboard</span>
-         </button>
-         
-         <div className="w-20 relative flex justify-center pointer-events-none">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-center justify-between px-8 h-16 relative">
              <button 
-                onClick={() => setShowAddModal(true)}
-                className="absolute -top-12 pointer-events-auto active:scale-95 transition-transform"
+                onClick={() => handleNavClick('dashboard')}
+                className={`flex flex-col items-center justify-center gap-1 w-16 transition-colors ${activeTab === 'dashboard' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
              >
-                <div className="bg-gray-900 dark:bg-white text-white dark:text-black w-16 h-16 rounded-full shadow-xl shadow-gray-500/20 dark:shadow-black/40 flex items-center justify-center border-4 border-background">
-                    <Plus className="w-8 h-8" />
-                </div>
-                <span className="sr-only">Log Data</span>
+                <LayoutDashboard className={`w-6 h-6 ${activeTab === 'dashboard' ? 'stroke-2' : 'stroke-1.5'}`} />
+                <span className="text-[10px] font-medium">Dashboard</span>
              </button>
-         </div>
 
-         <button 
-            onClick={() => handleNavClick('history')}
-            className={`flex-1 flex flex-col items-center justify-center gap-1.5 pb-2 pt-3 h-full active:bg-gray-50 dark:active:bg-zinc-800/50 transition-colors ${activeTab === 'history' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
-         >
-            <History className={`w-7 h-7 ${activeTab === 'history' ? 'stroke-2' : 'stroke-1.5'}`} />
-            <span className="text-[11px] font-medium">History</span>
-         </button>
+             {/* Center Add Button */}
+             <div className="absolute left-1/2 -translate-x-1/2 -top-5">
+                 <button 
+                    onClick={() => setShowAddModal(true)}
+                    className="w-14 h-14 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black shadow-lg shadow-gray-900/20 active:scale-95 transition-transform border-[4px] border-background"
+                 >
+                    <Plus className="w-7 h-7" />
+                 </button>
+             </div>
+
+             <button 
+                onClick={() => handleNavClick('history')}
+                className={`flex flex-col items-center justify-center gap-1 w-16 transition-colors ${activeTab === 'history' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'}`}
+             >
+                <History className={`w-6 h-6 ${activeTab === 'history' ? 'stroke-2' : 'stroke-1.5'}`} />
+                <span className="text-[10px] font-medium">History</span>
+             </button>
+          </div>
       </div>
 
       {/* Modals */}

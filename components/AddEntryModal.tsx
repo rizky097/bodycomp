@@ -54,44 +54,85 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({ onClose, onSave, onDelete
     }
   }, [initialData]);
 
+  // Helper to resize image for faster upload/processing
+  const resizeImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round(height * (MAX_WIDTH / width));
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round(width * (MAX_HEIGHT / height));
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8)); // 0.8 quality jpeg
+          } else {
+             reject(new Error("Canvas context failed"));
+          }
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        try {
-          const extracted = await extractMetricsFromImage(base64String);
-          
-          // Convert extracted numbers to strings for the form
-          const extractedStrings: Record<string, string> = {};
-          if (extracted.date) extractedStrings.date = extracted.date.split('T')[0];
-          
-          Object.keys(METRICS_CONFIG).forEach((key) => {
-             const val = extracted[key as keyof BodyMetrics];
-             if (typeof val === 'number') {
-                 extractedStrings[key] = String(val);
-             }
-          });
+      // Resize image before sending to AI
+      const resizedBase64 = await resizeImage(file);
+      
+      try {
+        const extracted = await extractMetricsFromImage(resizedBase64);
+        
+        // Convert extracted numbers to strings for the form
+        const extractedStrings: Record<string, string> = {};
+        if (extracted.date) extractedStrings.date = extracted.date.split('T')[0];
+        
+        Object.keys(METRICS_CONFIG).forEach((key) => {
+           const val = extracted[key as keyof BodyMetrics];
+           if (typeof val === 'number') {
+               extractedStrings[key] = String(val);
+           }
+        });
 
-          setFormData(prev => ({
-            ...prev,
-            ...extractedStrings
-          }));
-          setStep('verify');
-        } catch (err) {
-            console.error(err);
-            alert("Failed to analyze image. Please try again or enter manually.");
-        } finally {
-          setLoading(false);
-        }
-      };
-      reader.readAsDataURL(file);
+        setFormData(prev => ({
+          ...prev,
+          ...extractedStrings
+        }));
+        setStep('verify');
+      } catch (err) {
+          console.error(err);
+          alert("Failed to analyze image. Please try again or enter manually.");
+      } finally {
+        setLoading(false);
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Error processing image:", error);
       setLoading(false);
     }
   };
